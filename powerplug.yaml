@@ -12,16 +12,25 @@ esphome:
   name: $devicename
   platform: ESP8266
   board: esp8285
+  on_boot:
+    priority: 600
+    then:
+      - switch.turn_on: relay
 
-# Enable logging
+# disable logging
 logger:
   baud_rate: 0
+  level: INFO
 
 # Enable Home Assistant API
 api:
+  password: !secret api_pass
+  encryption:
+    key: !secret api_key
 
 # Enable over the air updates
 ota:
+  password: !secret ota_pass
 
 wifi:
   ssid: !secret wifi_name
