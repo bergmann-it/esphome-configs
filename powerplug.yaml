@@ -1,8 +1,8 @@
 #gosund sp111 powerplug
 #https://www.esphome-devices.com/devices/Gosund-SP111
 substitutions:
-  devicename: "powerplug01"
-  upper_devicename: "Powerplug 01"
+  devicename: "powerplug02"
+  upper_devicename: "Powerplug 02"
   # Higher value gives lower watt readout
   current_res: "0.00280"
   # Lower value gives lower voltage readout
@@ -66,6 +66,12 @@ binary_sensor:
     on_press:
       - switch.toggle: button_switch
 
+button:
+  - platform: safe_mode
+    name: "${devicename} Restart (Safe Mode)"
+  - platform: restart
+    name: "${devicename} Restart"
+
 sensor:
   - platform: wifi_signal
     name: "${devicename} - Wifi Signal"
@@ -120,17 +126,23 @@ sensor:
       id: "power_wattage"
       icon: mdi:gauge
 
-status_led:
-  pin:
-    number: GPIO02
-    inverted: True
-  id: led_blue
+# This or second output
+#
+#status_led:
+#  pin:
+#    number: GPIO02
+#    inverted: True
+#  id: led_blue
 
 output:
   - platform: gpio
     pin: GPIO00
     inverted: true
     id: led_red
+  - platform: gpio
+    pin: GPIO02
+    inverted: true
+    id: led_blue
 
 switch:
   - platform: template
