@@ -1,0 +1,9 @@
+substitutions:
+  devicename: "powerplug05"
+  upper_devicename: "Powerplug 05"
+  comment: "powerplug Trockner"
+  status_led_gpio: GPIO4
+  led1_gpio: GPIO12
+  relay_gpio: GPIO13
+
+<<: !include ../types/powerplug-p11.yaml

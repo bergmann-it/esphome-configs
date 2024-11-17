@@ -1,0 +1,69 @@
+#gosund sp111 powerplug
+#https://www.esphome-devices.com/devices/Gosund-SP111
+#
+#led_1: red
+#led_2: blue
+
+packages:
+  powerplug: !include powerplug-package.yaml
+
+esp8266:
+  board: esp8285
+  restore_from_flash: true
+
+binary_sensor:
+  - id: "${devicename}_button_state"
+    platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: True
+    on_press:
+      if: 
+        condition:
+          switch.is_off: lock 
+        then:
+          switch.toggle: button_switch
+
+sensor:
+  - platform: hlw8012
+    sel_pin:
+      number: GPIO12
+      inverted: True
+    cf_pin: GPIO05
+    cf1_pin: GPIO04
+    change_mode_every: 4
+    current_resistor: ${current_res}
+    voltage_divider: ${voltage_div}
+    update_interval: 3s
+    current:
+      name: "${devicename} - Current"
+      unit_of_measurement: A
+      accuracy_decimals: 3
+      icon: mdi:current-ac
+      filters:
+        - calibrate_linear:
+          - 0 -> 0.01
+          - 3.552 -> 7.963
+    energy:
+      name: "${devicename} - Energy"
+      id: "power_energy"
+      unit_of_measurement: Wh
+    power:
+      name: "${devicename} - Power"
+      unit_of_measurement: W
+      id: "power_wattage"
+      icon: mdi:gauge
+      filters:
+        - calibrate_linear:
+          - 0 -> 0.5
+          - 1586.3 -> 1805
+    voltage:
+      name: "${devicename} - Voltage"
+      unit_of_measurement: V
+      accuracy_decimals: 1
+      icon: mdi:flash-outline
+      filters:
+        - calibrate_linear:
+          - 236 -> 229.8
+          - 236.6 -> 230.2

@@ -1,0 +1,104 @@
+substitutions:
+  devicename: "meter_kg_heizung_strom"
+  upper_devicename: "Stromzaehler Bergmann"
+
+esphome:
+  name: "meter-kg-heizung-strom"
+  friendly_name: $devicename
+
+esp8266:
+  board: esp8285
+#  framework:
+#    version: 3.0.2
+
+# disable logging
+logger:
+  baud_rate: 0
+  level: ERROR
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+# Enable over the air updates
+ota:
+  - platform: esphome
+    password: !secret ota_pass
+
+wifi:
+  ssid: !secret wifi_name
+  password: !secret wifi_pass
+  fast_connect: on
+
+# see: https://esphome.io/components/time.html
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+# Enable Web server
+web_server:
+  port: 80
+
+uart:
+  rx_pin: GPIO03
+  baud_rate: 9600
+
+sml:
+  id: smlmeter
+
+http_request:
+  verify_ssl: false
+  esp8266_disable_ssl_support: true
+
+text_sensor:
+  - platform: version
+    name: "${devicename} - Version"
+    icon: mdi:cube-outline
+
+sensor:
+  - platform: wifi_signal
+    name: "${devicename} - Wifi Signal"
+    update_interval: 60s
+    icon: mdi:wifi
+
+  - platform: uptime
+    name: "${devicename} - Uptime"
+    update_interval: 60s
+    icon: mdi:clock-outline
+
+  - platform: sml
+    name: "${devicename} - Total energy"
+    icon: mdi:meter-electric-outline
+    sml_id: smlmeter
+    obis_code: "1-0:1.8.0"
+    unit_of_measurement: kWh
+    accuracy_decimals: 3
+    device_class: energy
+    state_class: total_increasing
+    filters:
+      - multiply: 0.0001
+    on_value:
+      - http_request.get:
+          url: !lambda |-
+            char buf[128];
+            sprintf(buf, "http://insecure.bergmann.click:42644/kiiJ2Haepiolaexailohtoux5eeneem3-meter_kg_heizung_strom/submit.php?energy=%1.3f", x);
+            return ((std::string) buf).c_str();
+
+  - platform: sml
+    name: "${devicename} - Power"
+    icon: mdi:meter-electric-outline
+    sml_id: smlmeter
+    obis_code: "1-0:16.7.0"
+    unit_of_measurement: W
+    accuracy_decimals: 2
+    device_class: power
+    state_class: measurement
+    filters:
+      - multiply: 0.01
+    on_value:
+      - http_request.get:
+          url: !lambda |-
+            char buf[128];
+            sprintf(buf, "http://insecure.bergmann.click:42644/kiiJ2Haepiolaexailohtoux5eeneem3-meter_kg_heizung_strom/submit.php?power=%1.2f", x);
+            return ((std::string) buf).c_str();

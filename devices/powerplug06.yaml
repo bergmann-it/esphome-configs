@@ -1,0 +1,8 @@
+substitutions:
+  devicename: "powerplug06"
+  comment: "powerplug Kuehlschrank"
+  status_led_gpio: GPIO4
+  led1_gpio: GPIO12
+  relay_gpio: GPIO13
+
+<<: !include ../types/powerplug-p11.yaml

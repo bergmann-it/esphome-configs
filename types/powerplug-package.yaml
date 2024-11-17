@@ -1,0 +1,137 @@
+light:
+  - platform: status_led
+    name: "${devicename} - State"
+    pin: 
+      number: ${status_led_gpio}
+      inverted: True
+
+esphome:
+  name: $devicename
+  comment: $comment
+
+preferences:
+  flash_write_interval: 5min  # set to 5min to prevent wearing out the onboard flash module too quickly
+
+# disable logging
+logger:
+  baud_rate: 0
+  level: INFO
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+# Enable over the air updates
+ota:
+  platform: esphome
+  password: !secret ota_pass
+
+wifi:
+  ssid: !secret wifi_name
+  password: !secret wifi_pass
+  fast_connect: on
+
+# see: https://esphome.io/components/time.html
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+# Enable Web server
+web_server:
+  port: 80
+
+text_sensor:
+  - platform: version
+    name: "${devicename} - Version"
+    icon: mdi:cube-outline
+
+switch:
+  - platform: template
+    id: stealth
+    name: "${devicename} - Stealth"
+    icon: mdi:light
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    on_turn_on:
+      output.turn_off: led1
+    on_turn_off:
+      if:
+        condition: 
+          switch.is_on: button_switch
+        then:
+          output.turn_on: led1
+  - platform: template
+    id: lock
+    name: "${devicename} - Lock"
+    icon: mdi:lock
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+  - platform: template
+    id: button_switch
+    name: "${devicename} - Switch"
+    icon: mdi:power
+    optimistic: true
+# This is where the "restore_from_flash" comes in. I set it to try to restore from flash and, if that fails, set it to ON
+    restore_mode: RESTORE_DEFAULT_ON
+    lambda: 'return id(relay).state;'
+    on_turn_on:
+      - switch.turn_on: relay
+      - if:
+          condition: 
+            switch.is_off: stealth
+          then:
+            output.turn_on: led1
+    on_turn_off:
+      - switch.turn_off: relay
+      - output.turn_off: led1
+  - platform: gpio
+    pin: ${relay_gpio}
+    id: relay
+
+output:
+  - platform: gpio
+    id: led1
+    pin:
+      number: ${led1_gpio}
+      inverted: true
+
+button:
+  - platform: safe_mode
+    name: "${devicename} - Restart (Safe Mode)"
+  - platform: restart
+    name: "${devicename} - Restart"
+  - platform: template
+    name: "${devicename} - Powercycle"
+    on_press:
+      then:
+        - switch.turn_off: relay
+        - delay: 5s
+        - switch.turn_on: relay
+
+binary_sensor:
+  - id: status_sensor
+    platform: status
+    name: "${devicename} - Connection Status"
+    device_class: connectivity
+
+sensor:
+  - id: wifi_signal_sensor
+    platform: wifi_signal
+    name: "${devicename} - Wifi Signal"
+    update_interval: 60s
+    icon: mdi:wifi
+  - id: uptimei_sensor
+    platform: uptime
+    name: "${devicename} - Uptime"
+    update_interval: 60s
+    icon: mdi:clock-outline
+  - id: total_daily_energy_sensor
+    platform: total_daily_energy
+    name: "${devicename} - Todays Usage"
+    power_id: "power_wattage"
+    filters:
+      # Multiplication factor from W to kW is 0.001
+      - multiply: 0.001
+    unit_of_measurement: kWh
+    icon: mdi:calendar-clock
