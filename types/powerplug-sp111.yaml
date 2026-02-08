@@ -67,3 +67,12 @@ sensor:
         - calibrate_linear:
           - 236 -> 229.8
           - 236.6 -> 230.2
+  # Total daily energy sensor
+  - platform: total_daily_energy
+    name: "${devicename} - Daily Energy"
+    id: "daily_energy"
+    power_id: power_wattage
+    filters:
+      # Multiplication factor from W to kW is 0.001
+      - multiply: 0.001
+    unit_of_measurement: kWh
