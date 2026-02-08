@@ -31,6 +31,7 @@ wifi:
   ssid: !secret wifi_name
   password: !secret wifi_pass
   fast_connect: on
+  min_auth_mode: WPA2
 
 # see: https://esphome.io/components/time.html
 time:
