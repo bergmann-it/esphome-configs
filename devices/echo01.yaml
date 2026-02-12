@@ -1,0 +1,5 @@
+substitutions:
+  devicename: "echo01"
+  friendlyname: "echo Büro"
+
+<<: !include ../types/atom-echos3r.yaml

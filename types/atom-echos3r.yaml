@@ -1,0 +1,41 @@
+esphome:
+  name: $devicename
+  friendlyname: $friendly_name
+
+esp32:
+  board: esp32s3box
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_pass
+
+wifi:
+  ssid: !secret wifi_name
+  password: !secret wifi_pass
+  fast_connect: on
+  min_auth_mode: WPA2
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Atom-EchoS3R-Voice-Assistant"
+    password: ""
+
+captive_portal:
+
+# Add the external package here
+packages:
+  remote_package_files:
+    url: https://github.com/m5stack/esphome-yaml
+    files: [ common/atom-echos3r-satellite-base.yaml ]
+    ref: main  
+    refresh: 0s
