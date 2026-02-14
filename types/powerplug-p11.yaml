@@ -24,6 +24,7 @@ uart:
   id: cse7766_uart_bus
   rx_pin: GPIO03
   baud_rate: 4800
+  parity: EVEN
 
 sensor:
   - platform: cse7766 # https://esphome.io/components/sensor/cse7766.html
