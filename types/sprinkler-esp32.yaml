@@ -1,0 +1,136 @@
+esphome:
+  name: $devicename
+  comment: $comment
+
+preferences:
+  flash_write_interval: 5min  # set to 5min to prevent wearing out the onboard flash module too quickly
+
+# disable logging
+logger:
+  baud_rate: 0
+  level: INFO
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+# Enable over the air updates
+ota:
+  platform: esphome
+  password: !secret ota_pass
+
+wifi:
+  ssid: !secret wifi_name
+  password: !secret wifi_pass
+  fast_connect: on
+  min_auth_mode: WPA2
+
+# see: https://esphome.io/components/time.html
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+# Enable Web server
+web_server:
+  port: 80
+  auth:
+    username: !secret web_username
+    password: !secret sprinkler_web_password
+
+text_sensor:
+  - platform: version
+    name: "${devicename} - Version"
+    icon: mdi:cube-outline
+
+switch:
+  - platform: gpio
+    pin: GPIO16
+    id: mosfet1
+    name: "${devicename} - Valve 1"
+    icon: mdi:power
+    on_turn_on:
+      - light.control:
+          id: light_led
+          brightness: 100%
+          state: on
+    on_turn_off:
+      - light.control:
+          id: light_led
+          brightness: 0%
+          state: off
+  - platform: gpio
+    pin: GPIO17
+    id: mosfet2
+    name: "${devicename} - Valve 2"
+    icon: mdi:power
+  - platform: gpio
+    pin: GPIO26
+    id: mosfet3
+    name: "${devicename} - Valve 3"
+    icon: mdi:power
+  - platform: gpio
+    pin: GPIO27
+    id: mosfet4
+    name: "${devicename} - Valve 4"
+    icon: mdi:power
+ 
+output:
+  - platform: ledc
+    id: output_led
+    pin: GPIO23
+
+light:
+  - platform: monochromatic
+    output: output_led
+    id: light_led
+    name: "${devicename} - light"
+    initial_state:
+      brightness: 50%
+
+button:
+  - platform: safe_mode
+    name: "${devicename} - Restart (Safe Mode)"
+  - platform: restart
+    name: "${devicename} - Restart"
+
+sensor:
+  - id: wifi_signal_sensor
+    platform: wifi_signal
+    name: "${devicename} - Wifi Signal"
+    update_interval: 60s
+    icon: mdi:wifi
+  - id: uptime_sensor
+    platform: uptime
+    name: "${devicename} - Uptime"
+    update_interval: 60s
+    icon: mdi:clock-outline
+
+esp32:
+  variant: esp32
+  framework:
+    type: esp-idf
+
+binary_sensor:
+  - id: status_sensor
+    platform: status
+    name: "${devicename} - Connection Status"
+    device_class: connectivity
+  - id: button_sensor
+    platform: gpio
+    name: "${devicename} - Button"
+    device_class: light
+    pin:
+      number: GPIO00
+    on_press:
+      - switch.toggle: mosfet1
+
+esp32_ble_tracker:
+  scan_parameters:
+    # We currently use the defaults to ensure Bluetooth
+    # can co-exist with WiFi In the future we may be able to
+    # enable the built-in coexistence logic in ESP-IDF
+    active: true
+
+bluetooth_proxy:
+  active: true

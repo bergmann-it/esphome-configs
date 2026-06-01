@@ -1,0 +1,5 @@
+substitutions:
+  devicename: "sprinkler02"
+  comment: "sprinkler wand"
+
+<<: !include ../types/sprinkler-esp32.yaml
