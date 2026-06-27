@@ -1,9 +1,52 @@
 esphome:
   name: $devicename
   comment: $comment
+  on_boot:
+    - priority: 1000
+      then:
+      - lambda: |-
+          std::vector<sensor::Sensor*> v_cooldown = {id(cooldown_end_valve1), id(cooldown_end_valve2), id(cooldown_end_valve3), id(cooldown_end_valve4)}; 
+          id(cooldown_end_ids) = v_cooldown;   
+          std::vector<sensor::Sensor*> v_on = {id(power_on_valve1), id(power_on_valve2), id(power_on_valve3), id(power_on_valve4)}; 
+          id(power_on_ids) = v_on;
+          std::vector<gpio::GPIOSwitch*> v_valve = {id(mosfet1), id(mosfet2), id(mosfet3), id(mosfet4)}; 
+          id(valve_ids) = v_valve;   
+          std::vector<oneshot_timer::OneShotTimer*> v_timer = {id(valve1_timer), id(valve2_timer), id(valve3_timer), id(valve4_timer)}; 
+          id(timer_ids) = v_timer;   
+
+    - priority: 600
+      then:
+        - sensor.template.publish:
+            id: power_on_valve1
+            state: 0
+        - sensor.template.publish:
+            id: power_on_valve2
+            state: 0
+        - sensor.template.publish:
+            id: power_on_valve3
+            state: 0
+        - sensor.template.publish:
+            id: power_on_valve4
+            state: 0
+        - sensor.template.publish:
+            id: cooldown_end_valve1
+            state: 0
+        - sensor.template.publish:
+            id: cooldown_end_valve2
+            state: 0
+        - sensor.template.publish:
+            id: cooldown_end_valve3
+            state: 0
+        - sensor.template.publish:
+            id: cooldown_end_valve4
+            state: 0
 
 preferences:
   flash_write_interval: 5min  # set to 5min to prevent wearing out the onboard flash module too quickly
+
+external_components:
+  - source: github://fh3ng/esphome-oneshot-timer
+    components: [ oneshot_timer ]
 
 # disable logging
 logger:
@@ -44,37 +87,144 @@ text_sensor:
     icon: mdi:cube-outline
 
 switch:
+  - platform: template
+    id: valve1_continuous
+    name: "${devicename} - Valve 1 Continous operation"
+    optimistic: true
+    on_turn_on:
+      - sensor.template.publish:
+          id: cooldown_end_valve1
+          state: 0
   - platform: gpio
     pin: GPIO16
     id: mosfet1
     name: "${devicename} - Valve 1"
     icon: mdi:power
     on_turn_on:
-      - light.control:
-          id: light_led
-          brightness: 100%
-          state: on
+      - if:
+          condition: 
+            lambda: 'return id(cooldown_end_valve1).state > id(homeassistant_time).now().timestamp;'
+          then:
+            - switch.turn_off: mosfet1
+          else:
+            - light.control:
+                id: light_led
+                brightness: 100%
+                state: on
+            - sensor.template.publish:
+                id: power_on_valve1
+                state: !lambda 'return id(homeassistant_time).now().timestamp;'
+            - if:
+                condition: 
+                  switch.is_off: valve1_continuous
+                then:
+                  oneshot_timer.start: valve1_timer
     on_turn_off:
+      - oneshot_timer.pause: valve1_timer
       - light.control:
           id: light_led
           brightness: 0%
           state: off
+      - if:
+          condition: 
+            switch.is_off: valve1_continuous
+          then:
+            - script.execute:
+                id: set_cooldown
+                valve: 1
   - platform: gpio
     pin: GPIO17
     id: mosfet2
     name: "${devicename} - Valve 2"
     icon: mdi:power
+    on_turn_on:
+      - if:
+          condition: 
+            lambda: 'return id(cooldown_end_valve2).state > id(homeassistant_time).now().timestamp;'
+          then:
+            - switch.turn_off: mosfet2
+          else:
+            - sensor.template.publish:
+                id: power_on_valve2
+                state: !lambda 'return id(homeassistant_time).now().timestamp;'
+            - oneshot_timer.start: valve2_timer
+    on_turn_off:
+      - oneshot_timer.pause: valve2_timer
+      - script.execute:
+          id: set_cooldown
+          valve: 2
   - platform: gpio
     pin: GPIO26
     id: mosfet3
     name: "${devicename} - Valve 3"
     icon: mdi:power
+    on_turn_on:
+      - if:
+          condition: 
+            lambda: 'return id(cooldown_end_valve3).state > id(homeassistant_time).now().timestamp;'
+          then:
+            - switch.turn_off: mosfet3
+          else:
+            - sensor.template.publish:
+                id: power_on_valve3
+                state: !lambda 'return id(homeassistant_time).now().timestamp;'
+            - oneshot_timer.start: valve3_timer
+    on_turn_off:
+      - oneshot_timer.pause: valve3_timer
+      - script.execute:
+          id: set_cooldown
+          valve: 3
   - platform: gpio
     pin: GPIO27
     id: mosfet4
     name: "${devicename} - Valve 4"
     icon: mdi:power
- 
+    on_turn_on:
+      - if:
+          condition: 
+            lambda: 'return id(cooldown_end_valve4).state > id(homeassistant_time).now().timestamp;'
+          then:
+            - switch.turn_off: mosfet4
+          else:
+            - sensor.template.publish:
+                id: power_on_valve3
+                state: !lambda 'return id(homeassistant_time).now().timestamp;'
+            - oneshot_timer.start: valve4_timer
+    on_turn_off:
+      - oneshot_timer.pause: valve4_timer
+      - script.execute:
+          id: set_cooldown
+          valve: 4
+  
+globals:
+  - id: cooldown_end_ids
+    type: 'std::vector<sensor::Sensor*>' # compiles
+    restore_value: no
+  - id: power_on_ids
+    type: 'std::vector<sensor::Sensor*>' # compiles
+    restore_value: no
+  - id: valve_ids
+    type: 'std::vector<gpio::GPIOSwitch*>' # compiles
+    restore_value: no
+  - id: timer_ids
+    type: 'std::vector<oneshot_timer::OneShotTimer*>' # compiles
+    restore_value: no
+
+script:
+  - id: set_cooldown
+    mode: parallel
+    parameters:
+      valve: int
+    then:
+      - lambda: |-
+          int last_on = id(power_on_ids)[valve-1]->state;
+          int now = id(homeassistant_time).now().timestamp;
+          int since_last_on = now - last_on;
+          int max_runtime = 180;
+          int waittime = 300;
+          int time = now + waittime;
+          id(cooldown_end_ids)[valve-1]->publish_state(time);
+
 output:
   - platform: ledc
     id: output_led
@@ -93,6 +243,43 @@ button:
     name: "${devicename} - Restart (Safe Mode)"
   - platform: restart
     name: "${devicename} - Restart"
+  - platform: template
+    name: "${devicename} - Turn Valve 1 on for 30 minutes"
+    on_press:
+      - if:
+          condition: 
+            switch.is_on: valve1_continuous
+          then:
+            - switch.turn_on: mosfet1
+            - oneshot_timer.start:
+                id: valve1_timer
+                interval: 30min
+
+oneshot_timer:
+  - interval: 3min
+    auto_start: false
+    id: valve1_timer
+    on_timeout:
+      then:
+        - switch.turn_off: mosfet1
+  - interval: 3min
+    auto_start: false
+    id: valve2_timer
+    on_timeout:
+      then:
+        - switch.turn_off: mosfet2
+  - interval: 3min
+    auto_start: false
+    id: valve3_timer
+    on_timeout:
+      then:
+        - switch.turn_off: mosfet3
+  - interval: 3min
+    auto_start: false
+    id: valve4_timer
+    on_timeout:
+      then:
+        - switch.turn_off: mosfet4
 
 sensor:
   - id: wifi_signal_sensor
@@ -105,6 +292,46 @@ sensor:
     name: "${devicename} - Uptime"
     update_interval: 60s
     icon: mdi:clock-outline
+  - id: cooldown_end_valve1
+    platform: template
+    name: "${devicename} - Valve 1 Cooldown End"
+    device_class: timestamp
+    update_interval: never
+  - id: cooldown_end_valve2
+    platform: template
+    name: "${devicename} - Valve 2 Cooldown End"
+    device_class: timestamp
+    update_interval: never
+  - id: cooldown_end_valve3
+    platform: template
+    name: "${devicename} - Valve 3 Cooldown End"
+    device_class: timestamp
+    update_interval: never
+  - id: cooldown_end_valve4
+    platform: template
+    name: "${devicename} - Valve 4 Cooldown End"
+    device_class: timestamp
+    update_interval: never
+  - id: power_on_valve1
+    platform: template
+    name: "${devicename} - Valve 1 last Power On"
+    device_class: timestamp
+    update_interval: never
+  - id: power_on_valve2
+    platform: template
+    name: "${devicename} - Valve 2 last Power On"
+    device_class: timestamp
+    update_interval: never
+  - id: power_on_valve3
+    platform: template
+    name: "${devicename} - Valve 3 last Power On"
+    device_class: timestamp
+    update_interval: never
+  - id: power_on_valve4
+    platform: template
+    name: "${devicename} - Valve 4 last Power On"
+    device_class: timestamp
+    update_interval: never
 
 esp32:
   variant: esp32

@@ -47,9 +47,9 @@ uart:
 sml:
   id: smlmeter
 
-http_request:
-  verify_ssl: false
-  esp8266_disable_ssl_support: true
+#http_request:
+#  verify_ssl: false
+#  esp8266_disable_ssl_support: true
 
 text_sensor:
   - platform: version
@@ -78,12 +78,12 @@ sensor:
     state_class: total_increasing
     filters:
       - multiply: 0.0001
-    on_value:
-      - http_request.get:
-          url: !lambda |-
-            char buf[128];
-            sprintf(buf, "http://insecure.bergmann.click:42644/kiiJ2Haepiolaexailohtoux5eeneem3-meter_kg_heizung_strom/submit.php?energy=%1.3f", x);
-            return ((std::string) buf).c_str();
+#    on_value:
+#      - http_request.get:
+#          url: !lambda |-
+#            char buf[128];
+#            sprintf(buf, "https://insecure.bergmann.click/kiiJ2Haepiolaexailohtoux5eeneem3-meter_kg_heizung_strom/submit.php?energy=%1.3f", x);
+#            return ((std::string) buf).c_str();
 
   - platform: sml
     name: "${devicename} - Power"
@@ -96,9 +96,9 @@ sensor:
     state_class: measurement
     filters:
       - multiply: 0.01
-    on_value:
-      - http_request.get:
-          url: !lambda |-
-            char buf[128];
-            sprintf(buf, "http://insecure.bergmann.click:42644/kiiJ2Haepiolaexailohtoux5eeneem3-meter_kg_heizung_strom/submit.php?power=%1.2f", x);
-            return ((std::string) buf).c_str();
+#    on_value:
+#      - http_request.get:
+#          url: !lambda |-
+#            char buf[128];
+#            sprintf(buf, "https://insecure.bergmann.click/kiiJ2Haepiolaexailohtoux5eeneem3-meter_kg_heizung_strom/submit.php?power=%1.2f", x);
+#            return ((std::string) buf).c_str();
